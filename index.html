@@ -1,0 +1,1055 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Wastewater IgA Sampling Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+/* Layout: one reading column; data card, question card, result card in order; charts in a two-up grid that stacks on phones */
+:root {
+  --paper: #eef1f0; --surface: #ffffff; --ink: #1e2a32; --muted: #5a6872; --line: #d3dadc; --soft: #e4e9ea;
+  --slate: #4f6f86; --sage: #7f9e97; --ochre: #b8964f; --rose: #a8716a;
+  --good: #4f7f6a; --warn: #a27b2e; --bad: #9a5a52;
+  --good-bg: #e3eee8; --warn-bg: #f3ecdc; --bad-bg: #f3e4e1; --slate-bg: #e3eaf0;
+  --f-sans: "IBM Plex Sans", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #12181c; --surface: #1a2227; --ink: #e3e9ec; --muted: #9ba8b0; --line: #2d3940; --soft: #222c32;
+  --slate: #8fb0c8; --sage: #9dbcb4; --ochre: #d3b578; --rose: #cf9a91;
+  --good: #8cc2a8; --warn: #dcb76a; --bad: #e0a097;
+  --good-bg: #1d2e27; --warn-bg: #2f2a1c; --bad-bg: #33221f; --slate-bg: #1e2b35; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --paper: #12181c; --surface: #1a2227; --ink: #e3e9ec; --muted: #9ba8b0; --line: #2d3940; --soft: #222c32;
+  --slate: #8fb0c8; --sage: #9dbcb4; --ochre: #d3b578; --rose: #cf9a91;
+  --good: #8cc2a8; --warn: #dcb76a; --bad: #e0a097;
+  --good-bg: #1d2e27; --warn-bg: #2f2a1c; --bad-bg: #33221f; --slate-bg: #1e2b35; color-scheme: dark }
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+[hidden] { display: none !important; }
+body { background: var(--paper); color: var(--ink); font-family: var(--f-sans); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 1040px; margin: 0 auto; padding-block: 28px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 18px; }
+header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 12px 24px; }
+header .name { display: grid; gap: 6px; min-width: 0; flex: 1 1 520px; }
+h1 { margin: 0; font-size: 26px; font-weight: 600; letter-spacing: -0.01em; text-wrap: balance; }
+h1 .unit { font-family: var(--f-mono); font-weight: 400; font-size: 14px; color: var(--muted); margin-left: 8px; letter-spacing: 0; }
+.lede { margin: 0; color: var(--muted); max-width: 68ch; }
+.lang { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.lang button { font: 500 13px var(--f-sans); padding: 6px 12px; border: 0; background: var(--surface); color: var(--muted); cursor: pointer; }
+.lang button[aria-pressed="true"] { background: var(--slate); color: var(--surface); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: grid; gap: 16px; min-width: 0; }
+.step { display: flex; align-items: baseline; gap: 10px; margin: 0; font-size: 17px; font-weight: 600; }
+.step .no { font-family: var(--f-mono); font-size: 13px; color: var(--slate); border: 1px solid var(--slate); border-radius: 4px; padding: 0 6px; }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); gap: 20px; }
+@media (max-width: 760px) { .grid2 { grid-template-columns: minmax(0, 1fr); } }
+.drop { border: 1.5px dashed var(--line); border-radius: 8px; padding: 18px; display: grid; gap: 10px; justify-items: start; background: var(--paper); }
+.drop.over { border-color: var(--slate); background: var(--slate-bg); }
+.drop p { margin: 0; color: var(--muted); }
+.btn { font: 500 14px var(--f-sans); border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 6px; padding: 7px 14px; cursor: pointer; }
+.btn:hover { border-color: var(--slate); }
+.btn.primary { background: var(--slate); color: var(--surface); border-color: var(--slate); font-weight: 600; padding: 9px 20px; }
+.btn.primary:disabled { opacity: .55; cursor: progress; }
+.btn:focus-visible, .chip:focus-visible, .seg button:focus-visible, select:focus-visible, textarea:focus-visible, .lang button:focus-visible { outline: 2px solid var(--slate); outline-offset: 2px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.chips .lbl { font-size: 13px; color: var(--muted); }
+.chip { font: 500 13px var(--f-sans); border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 4px 12px; cursor: pointer; }
+.chip[aria-pressed="true"] { border-color: var(--slate); background: var(--slate-bg); color: var(--slate); }
+textarea { width: 100%; min-height: 110px; font: 13px/1.5 var(--f-mono); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; background: var(--surface); color: var(--ink); resize: vertical; }
+.hint { font-size: 13px; color: var(--muted); margin: 0; }
+.err { font-size: 14px; color: var(--bad); background: var(--bad-bg); border-radius: 6px; padding: 8px 12px; margin: 0; }
+.summary { font-size: 14px; margin: 0; }
+.summary .tag { display: inline-block; font-size: 12px; color: var(--warn); background: var(--warn-bg); border-radius: 4px; padding: 1px 8px; margin-right: 8px; }
+.seg { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 560px) { .seg { grid-template-columns: minmax(0, 1fr); } }
+.seg button { text-align: left; font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; cursor: pointer; display: grid; gap: 4px; }
+.seg button b { font-weight: 600; font-size: 15px; }
+.seg button span { font-size: 13px; color: var(--muted); }
+.seg button[aria-pressed="true"] { border-color: var(--slate); box-shadow: inset 0 0 0 1px var(--slate); background: var(--slate-bg); }
+.opts { display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: end; }
+.opt { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+#plan, input.num { font: 14px var(--f-mono); padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); width: 13ch; }
+#plan:focus-visible, input.num:focus-visible { outline: 2px solid var(--slate); outline-offset: 2px; }
+select { font: 14px var(--f-sans); padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); }
+.runrow { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.bar { flex: 1 1 160px; height: 6px; background: var(--soft); border-radius: 3px; overflow: hidden; max-width: 320px; }
+.bar i { display: block; height: 100%; width: 0; background: var(--slate); transition: width .15s; }
+@media (prefers-reduced-motion: reduce) { .bar i { transition: none; } }
+.verdict { display: grid; gap: 8px; border-radius: 8px; padding: 14px 16px; background: var(--slate-bg); }
+.verdict.good { background: var(--good-bg); } .verdict.warn { background: var(--warn-bg); } .verdict.bad { background: var(--bad-bg); }
+.pill { justify-self: start; font-size: 12px; font-weight: 600; letter-spacing: .04em; border-radius: 999px; padding: 2px 10px; color: var(--surface); background: var(--slate); }
+.verdict.good .pill { background: var(--good); } .verdict.warn .pill { background: var(--warn); } .verdict.bad .pill { background: var(--bad); }
+.verdict p { margin: 0; max-width: 75ch; }
+.verdict .big { font-size: 17px; font-weight: 600; }
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.metric { padding: 10px 14px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); display: grid; gap: 2px; margin: 0 -1px -1px 0; }
+.metric dt { font-size: 12px; color: var(--muted); letter-spacing: .02em; }
+.metric dd { margin: 0; font: 500 18px var(--f-mono); font-variant-numeric: tabular-nums; }
+.metric dd small { font-size: 12px; color: var(--muted); font-weight: 400; }
+.charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+@media (max-width: 760px) { .charts { grid-template-columns: minmax(0, 1fr); } }
+figure { margin: 0; display: grid; gap: 6px; min-width: 0; }
+figcaption { font-size: 13px; font-weight: 600; }
+figure .note { font-size: 12px; color: var(--muted); margin: 0; }
+svg.chart { width: 100%; height: auto; display: block; overflow: visible; }
+svg text { font-family: var(--f-sans); font-size: 11px; fill: var(--muted); }
+svg .ax { stroke: var(--ink); stroke-width: 1; fill: none; }
+svg .grid { stroke: var(--soft); stroke-width: 1; }
+svg .thr { stroke: var(--rose); stroke-width: 1.2; stroke-dasharray: 4 3; fill: none; }
+svg .ref { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 4 3; fill: none; }
+.tablewrap { overflow-x: auto; }
+table.power { border-collapse: separate; border-spacing: 4px; font-variant-numeric: tabular-nums; width: 100%; min-width: 420px; }
+table.power th { font-size: 12px; font-weight: 500; color: var(--muted); text-align: left; padding: 2px 6px; }
+table.power td { border-radius: 6px; padding: 8px 10px; vertical-align: top; }
+table.power td b { font: 500 16px var(--f-mono); display: block; }
+table.power td span { font-size: 12px; opacity: .85; }
+table.power td.pick { box-shadow: inset 0 0 0 2px var(--ink); }
+table.power th.row { white-space: nowrap; font-family: var(--f-mono); color: var(--ink); }
+.cad { display: block; height: 6px; margin-top: 5px; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+details.method { font-size: 14px; color: var(--ink); }
+details.method summary { cursor: pointer; font-weight: 600; }
+details.method ul { margin: 10px 0 0; padding-left: 20px; display: grid; gap: 6px; color: var(--muted); max-width: 80ch; }
+footer { font-size: 12px; color: var(--muted); display: grid; gap: 4px; }
+footer p { margin: 0; max-width: 90ch; }
+.pastebox { display: grid; gap: 8px; }
+ul.quality { margin: 0; padding-left: 18px; font-size: 13px; color: var(--muted); display: grid; gap: 2px; }
+ul.quality li.warn { color: var(--warn); }
+.appl { font-size: 13px; color: var(--muted); border-left: 3px solid var(--line); padding: 4px 10px; margin: 0; }
+code { font-family: var(--f-mono); font-size: 12.5px; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="name">
+      <h1><span data-i="title"></span></h1>
+      <p class="lede" data-i="lede"></p>
+    </div>
+    <div class="lang" role="group" aria-label="Language">
+      <button id="lang-zh" type="button" aria-pressed="false">中文</button>
+      <button id="lang-en" type="button" aria-pressed="false">EN</button>
+    </div>
+  </header>
+
+  <section class="card" aria-labelledby="s1">
+    <h2 class="step" id="s1"><span class="no">1</span><span data-i="s1"></span></h2>
+    <div class="grid2">
+      <div style="display:grid;gap:12px;min-width:0">
+        <div class="drop" id="drop">
+          <p data-i="drop"></p>
+          <div class="actions">
+            <label class="btn" for="file"><span data-i="choose"></span></label>
+            <input id="file" type="file" accept=".csv,.txt,text/csv" hidden>
+            <button class="btn" type="button" id="pasteToggle" data-i="paste"></button>
+          </div>
+          <p class="hint" data-i="format"></p>
+        </div>
+        <div class="opts">
+          <label class="opt" for="lod"><span data-i="lod"></span>
+            <input id="lod" class="num" type="text" inputmode="decimal" spellcheck="false" placeholder="—"></label>
+        </div>
+        <p class="hint" data-i="lodHint"></p>
+        <div id="pasteBox" class="pastebox" hidden>
+          <textarea id="pasteText" spellcheck="false" placeholder="date,iga_ng_per_ml&#10;YYYY-MM-DD,value"></textarea>
+          <div><button class="btn" type="button" id="usePaste" data-i="usePaste"></button></div>
+        </div>
+        <p class="err" id="dataErr" hidden></p>
+      </div>
+      <figure>
+        <p class="summary" id="summary"></p>
+        <ul class="quality" id="quality"></ul>
+        <div id="seriesChart"></div>
+      </figure>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="s2">
+    <h2 class="step" id="s2"><span class="no">2</span><span data-i="s2"></span></h2>
+    <div class="seg" role="group">
+      <button type="button" id="mode-design" aria-pressed="false"><b data-i="mDesign"></b><span data-i="mDesignHint"></span></button>
+      <button type="button" id="mode-check" aria-pressed="true"><b data-i="mCheck"></b><span data-i="mCheckHint"></span></button>
+    </div>
+    <div class="opts">
+      <label class="opt" for="target"><span data-i="target"></span>
+        <select id="target"><option value="0.8">80%</option><option value="0.9">90%</option></select></label>
+      <label class="opt" for="sims"><span data-i="sims"></span>
+        <select id="sims"><option value="300">300</option><option value="1000" selected>1000</option><option value="3000">3000</option></select></label>
+      <label class="opt" for="miss" id="missWrap"><span data-i="miss"></span>
+        <select id="miss"><option value="0">0%</option><option value="0.1">10%</option><option value="0.2">20%</option><option value="0.3">30%</option></select></label>
+      <label class="opt" for="plan" id="looksWrap"><span data-i="looks"></span>
+        <input id="plan" type="text" value="52, 78, 104" inputmode="numeric" spellcheck="false"></label>
+    </div>
+    <p class="hint" id="looksHint" data-i="looksHint"></p>
+    <details id="assumptions" hidden>
+      <summary data-i="assumptionsTitle"></summary><p class="hint" data-i="assumptionsHint"></p>
+      <div class="opts">
+        <label class="opt"><span data-i="periodLabel"></span><input class="num" type="number" id="assume_period" min="8" max="80" step="any"></label>
+        <label class="opt"><span data-i="r2Label"></span><input class="num" type="number" id="assume_r2" min="0" max="1" step="any"></label>
+        <label class="opt"><span data-i="phi_resLabel"></span><input class="num" type="number" id="assume_phi_res" min="0" max="0.95" step="any"></label>
+        <label class="opt"><span data-i="phi_allLabel"></span><input class="num" type="number" id="assume_phi_all" min="0" max="0.95" step="any"></label>
+      </div>
+    </details>
+    <div class="runrow">
+      <button class="btn primary" type="button" id="run" disabled><span data-i="run"></span></button>
+      <div class="bar" aria-hidden="true"><i id="prog"></i></div>
+      <span class="hint" id="status"></span>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="s3" aria-live="polite">
+    <h2 class="step" id="s3"><span class="no">3</span><span data-i="s3"></span></h2>
+    <div id="results"></div>
+    <div class="actions"><button class="btn" type="button" id="copy" data-i="copy"></button><span class="hint" id="copyMsg"></span></div>
+    <textarea id="copyFallback" hidden readonly></textarea>
+    <details class="method">
+      <summary data-i="mTitle"></summary>
+      <ul id="methodList"></ul>
+    </details>
+  </section>
+
+  <footer>
+    <p data-i="privacy"></p>
+  </footer>
+</div>
+
+<script id="core" type="text/plain">
+// Port of code/design_tool.py (Wang & Sano). Same models, rules and defaults.
+function linspace(a, b, n) { const o = []; for (let i = 0; i < n; i++) o.push(a + (b - a) * i / (n - 1)); return o; }
+const PS = linspace(8, 80, 145);
+
+function makeRng(seed) {
+  let a = seed >>> 0, spare = null;
+  const u = () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const n = () => {
+    if (spare !== null) { const s = spare; spare = null; return s; }
+    let x, y, r; do { x = 2 * u() - 1; y = 2 * u() - 1; r = x * x + y * y; } while (r === 0 || r >= 1);
+    const f = Math.sqrt(-2 * Math.log(r) / r); spare = y * f; return x * f;
+  };
+  return { u, n };
+}
+
+function ar1(R, n, phi, sd) {
+  const s = new Float64Array(n), es = sd * Math.sqrt(1 - phi * phi); s[0] = R.n() * sd;
+  for (let i = 1; i < n; i++) s[i] = phi * s[i - 1] + R.n() * es;
+  return s;
+}
+
+function inv3(m) {
+  const [a, b, c, d, e, f, g, h, k] = m;
+  const A = e * k - f * h, B = -(d * k - f * g), C = d * h - e * g;
+  const det = a * A + b * B + c * C;
+  return [A / det, -(b * k - c * h) / det, (b * f - c * e) / det,
+          B / det, (a * k - c * g) / det, -(a * f - c * d) / det,
+          C / det, -(a * h - b * g) / det, (a * e - b * d) / det];
+}
+
+// least-squares sinusoid scanner for fixed sampling times t and candidate periods ps
+function scanner(t, ps) {
+  ps = ps || PS; const n = t.length;
+  const B = ps.map(P => {
+    const s = new Float64Array(n), c = new Float64Array(n); let ss = 0, cc = 0, s1 = 0, c1 = 0, sc = 0;
+    for (let i = 0; i < n; i++) { const w = 2 * Math.PI * t[i] / P; s[i] = Math.sin(w); c[i] = Math.cos(w); s1 += s[i]; c1 += c[i]; ss += s[i] * s[i]; cc += c[i] * c[i]; sc += s[i] * c[i]; }
+    return { P, s, c, inv: inv3([n, s1, c1, s1, ss, sc, c1, sc, cc]) };
+  });
+  function sums(v) { let S = 0, vv = 0; for (let i = 0; i < n; i++) { S += v[i]; vv += v[i] * v[i]; } return [S, vv, vv - S * S / n]; }
+  function r2of(b, v, S, vv, sst) {
+    let Ss = 0, Sc = 0; for (let i = 0; i < n; i++) { Ss += b.s[i] * v[i]; Sc += b.c[i] * v[i]; }
+    const q = [S, Ss, Sc], m = b.inv; let proj = 0;
+    for (let r = 0; r < 3; r++) proj += q[r] * (m[3 * r] * q[0] + m[3 * r + 1] * q[1] + m[3 * r + 2] * q[2]);
+    return 1 - (vv - proj) / sst;
+  }
+  return {
+    best(v) { const [S, vv, sst] = sums(v); let br = 0, bp = 0; for (const b of B) { const r = r2of(b, v, S, vv, sst); if (r > br) { br = r; bp = b.P; } } return [br, bp]; },
+    curve(v) { const [S, vv, sst] = sums(v); return B.map(b => r2of(b, v, S, vv, sst)); },
+  };
+}
+
+function fit(t, y, P) {
+  const n = t.length; let s1 = 0, c1 = 0, ss = 0, cc = 0, sc = 0, Y = 0, Ys = 0, Yc = 0;
+  for (let i = 0; i < n; i++) { const w = 2 * Math.PI * t[i] / P, s = Math.sin(w), c = Math.cos(w); s1 += s; c1 += c; ss += s * s; cc += c * c; sc += s * c; Y += y[i]; Ys += y[i] * s; Yc += y[i] * c; }
+  const m = inv3([n, s1, c1, s1, ss, sc, c1, sc, cc]); const q = [Y, Ys, Yc];
+  const b = [0, 1, 2].map(r => m[3 * r] * q[0] + m[3 * r + 1] * q[1] + m[3 * r + 2] * q[2]);
+  const pred = tt => b[0] + b[1] * Math.sin(2 * Math.PI * tt / P) + b[2] * Math.cos(2 * Math.PI * tt / P);
+  const res = Array.from(y, (v, i) => v - pred(t[i]));
+  return { b, pred, res };
+}
+
+const mean = v => { let s = 0; for (const x of v) s += x; return s / v.length; };
+const pvar = v => { const m = mean(v); let s = 0; for (const x of v) s += (x - m) * (x - m); return s / v.length; };
+// week-to-week autocorrelation from pairs of samples exactly one week apart (gaps are not treated as adjacent);
+// falls back to pairs two weeks apart (square root) and then to consecutive samples when too few pairs exist
+function lag1w(t, v) {
+  const m = mean(v); let ss = 0; for (const x of v) ss += (x - m) * (x - m);
+  // scaled so that a record without gaps gives exactly the usual lag-1 estimate
+  const at = k => { const pos = new Map(t.map((x, i) => [Math.round(x), i])); let s = 0, n = 0;
+    t.forEach((x, i) => { const j = pos.get(Math.round(x) + k); if (j !== undefined) { s += (v[i] - m) * (v[j] - m); n++; } }); return n >= 10 ? s / ss * (v.length - 1) / n : null; };
+  const r1 = at(1); if (r1 !== null) return r1;
+  const r2 = at(2); if (r2 !== null) return Math.sign(r2) * Math.sqrt(Math.abs(r2));
+  return lag1(v);
+}
+function lag1(v) { const m = mean(v); let a = 0, b = 0; for (let i = 0; i < v.length; i++) { const d = v[i] - m; b += d * d; if (i) a += (v[i - 1] - m) * d; } return a / b; }
+function percentile(arr, q) { const a = Array.from(arr).sort((x, y) => x - y); const h = (a.length - 1) * q / 100, lo = Math.floor(h), hi = Math.ceil(h); return a[lo] + (a[hi] - a[lo]) * (h - lo); }
+const arange = (a, b, s) => { const o = []; for (let x = a; x < b; x += s) o.push(x); return o; };
+const every = (v, s) => Array.from(v).filter((_, i) => i % s === 0);
+
+function estimate(t, y, assumptions) {
+  const n = y.length, span = t[n - 1] - t[0]; const [, P0] = scanner(t).best(y);
+  if (span >= 1.5 * 52 && P0 <= span / 1.5) {
+    const f = fit(t, y, P0);
+    return { n, span, period: P0, amp: Math.hypot(f.b[1], f.b[2]), sd: Math.sqrt(pvar(f.res)), phi_res: lag1w(t, f.res), phi_all: lag1w(t, y), src: 'pilot' };
+  }
+  if (!assumptions) throw new Error('needAssumptions');
+  const tv = pvar(y);
+  return { n, span, period: assumptions.period, amp: Math.sqrt(2 * assumptions.r2 * tv), sd: Math.sqrt((1 - assumptions.r2) * tv),
+           phi_res: assumptions.phi_res, phi_all: Math.max(lag1w(t, y), assumptions.phi_all), src: 'assumed' };
+}
+
+// miss: expected share of planned samples that will be missing; each run of the simulation draws its own random
+// pattern of missing samples (4 patterns per cell), applied identically to the no-cycle series that set the threshold
+function cyclePower(p, weeks, step, sims, R, miss) {
+  miss = miss || 0; const planned = arange(0, weeks, step), nm = miss > 0 ? 4 : 1, per = Math.ceil(sims / nm); let hit = 0, tot = 0;
+  for (let m = 0; m < nm; m++) {
+    let t = planned.filter(() => miss === 0 || R.u() >= miss); if (t.length < 8) t = planned.slice();
+    const sc = scanner(t), nul = [], pick = v => t.map(i => v[i]);
+    for (let k = 0; k < per; k++) nul.push(sc.best(pick(ar1(R, weeks, Math.min(p.phi_all, 0.95), 1)))[0]);
+    const thr = percentile(nul, 95);
+    for (let k = 0; k < per; k++) {
+      const ph = R.u() * 2 * Math.PI, e = ar1(R, weeks, p.phi_res, p.sd), v = new Float64Array(weeks);
+      for (let i = 0; i < weeks; i++) v[i] = p.amp * Math.sin(2 * Math.PI * i / p.period + ph) + e[i];
+      const [r, P] = sc.best(pick(v)); if (r > thr && Math.abs(P - p.period) <= 0.25 * p.period && P <= weeks / 1.5) hit++;
+      tot++;
+    }
+  }
+  return hit / tot;
+}
+
+function design(t, y, opt, progress) {
+  const R = makeRng(opt.seed || 1), p = estimate(t, y, opt.assumptions), rows = [];
+  const durs = [52, 78, 104, 130, 156], steps = [1, 2, 4], periods = [20, 26, 32, 40, 52, 64];
+  const total = durs.length * steps.length + periods.length * durs.length; let k = 0;
+  for (const wk of durs) for (const st of steps) {
+    rows.push({ weeks: wk, step: st, samples: Math.round(arange(0, wk, st).length * (1 - (opt.miss || 0))), power: cyclePower(p, wk, st, opt.sims, R, opt.miss) });
+    progress && progress(++k / total);
+  }
+  // what if the true cycle is not the assumed one: same amplitude and noise, weekly sampling, other periods
+  const sens = [];
+  for (const T of periods) for (const wk of durs) {
+    sens.push({ period: T, weeks: wk, power: cyclePower({ ...p, period: T }, wk, 1, Math.min(opt.sims, 500), R, opt.miss) });
+    progress && progress(++k / total);
+  }
+  const ok = rows.filter(r => r.power >= opt.target).sort((a, b) => a.samples - b.samples || a.weeks - b.weeks);
+  const fast = rows.filter(r => r.power >= opt.target).sort((a, b) => a.weeks - b.weeks || a.samples - b.samples);
+  const wk1 = rows.filter(r => r.step === 1 && r.power >= opt.target).map(r => r.weeks);
+  const sched = schedules(p, Math.min(opt.sims, 1000), R);
+  progress && progress(1);
+  return { p, rows, sens, periods, sched, fewest: ok[0] || null, fastest: fast[0] || null, weekly: wk1.length ? Math.min(...wk1) : null };
+}
+
+// how often to check: share of simulated catchments confirmed by each record length, weekly sampling, and the
+// false-alarm rate in catchments without a cycle (same rules as checkpoint mode; per-check level 0.05 / number of checks)
+function schedules(p, M, R) {
+  const looksAll = [52, 65, 78, 91, 104], plans = { yearly: [52, 104], half: [52, 78, 104], quarterly: [52, 65, 78, 91, 104] };
+  const city = [], none = [], nul = [];
+  for (let k = 0; k < M; k++) {
+    const ph = R.u() * 2 * Math.PI, e = ar1(R, 104, p.phi_res, p.sd), v = new Float64Array(104);
+    for (let i = 0; i < 104; i++) v[i] = p.amp * Math.sin(2 * Math.PI * i / p.period + ph) + e[i];
+    city.push(v); none.push(ar1(R, 104, Math.min(p.phi_all, 0.95), 1)); nul.push(ar1(R, 104, Math.min(p.phi_all, 0.95), 1));
+  }
+  const res = {};
+  for (const n of looksAll) {
+    const sc = scanner(arange(0, n, 1));
+    res[n] = { nul: nul.map(v => sc.best(v.subarray(0, n))[0]), city: city.map(v => sc.best(v.subarray(0, n))), none: none.map(v => sc.best(v.subarray(0, n))) };
+  }
+  const out = {};
+  for (const [name, looks] of Object.entries(plans)) {
+    const a = 0.05 / looks.length, thr = {}; looks.forEach(n => { thr[n] = percentile(res[n].nul, 100 * (1 - a)); });
+    const first = city.map((_, k) => { for (const n of looks) { const [r, P] = res[n].city[k]; if (r > thr[n] && P <= n / 1.5 && Math.abs(P - p.period) <= 0.25 * p.period) return n; } return null; });
+    const fa = none.filter((_, k) => looks.some(n => { const [r, P] = res[n].none[k]; return r > thr[n] && P <= n / 1.5; })).length / M;
+    const cum = {}; looksAll.forEach(n => { cum[n] = first.filter(f => f !== null && f <= n).length / M; });
+    const stop = first.map(f => f === null ? 104 : f), meanStop = stop.reduce((s, x) => s + x, 0) / M;
+    out[name] = { looks, cum, fa, meanStop };
+  }
+  return out;
+}
+
+// red-noise null sampled like the record: AR(1) on the full weekly grid, read at the sampling weeks idx
+function redNoise(idx, phi, alpha, sims, R, ps) {
+  const L = idx[idx.length - 1] + 1, sc = scanner(idx, ps), nul = [], v = new Float64Array(idx.length);
+  for (let k = 0; k < sims; k++) { const e = ar1(R, L, Math.min(phi, 0.95), 1); for (let i = 0; i < idx.length; i++) v[i] = e[idx[i]]; nul.push(sc.best(v)[0]); }
+  return { thr: percentile(nul, 100 * (1 - alpha)), nul };
+}
+
+// integer sampling weeks from the first sample; samples in the same week are averaged (log scale)
+function toWeeks(tw, y) {
+  const m = new Map(); tw.forEach((w, i) => { const k = Math.round(w - tw[0]); if (!m.has(k)) m.set(k, []); m.get(k).push(y[i]); });
+  const t = [...m.keys()].sort((a, b) => a - b); return { t, y: t.map(k => mean(m.get(k))) };
+}
+
+function checkpoint(tw, yw, opt, progress) {
+  const R = makeRng(opt.seed || 1), plan = [...opt.plan].sort((a, b) => a - b), looks = plan.length, sims = opt.sims, target = opt.target;
+  const { t, y } = toWeeks(tw, yw), n = y.length, span = t[n - 1] + 1, aLook = 0.05 / looks, phi = lag1w(t, y), nnull = Math.max(4 * sims, 4000);
+  const sc = scanner(t), [r2, P] = sc.best(y), curve = sc.curve(y);
+  const { thr, nul } = redNoise(t, phi, aLook, nnull, R);
+  const pval = (1 + nul.filter(v => v >= r2).length) / (nul.length + 1);
+  progress && progress(0.2);
+  const f = fit(t, y, P), amp = Math.hypot(f.b[1], f.b[2]), sd = Math.sqrt(pvar(f.res)), phr = lag1w(t, f.res);
+  const boot = [], draws = [];
+  for (let k = 0; k < sims; k++) {
+    const e = ar1(R, span, phr, sd), v = t.map((tt, i) => f.pred(tt) + e[tt]), Pb = sc.best(v)[1]; boot.push(Pb);
+    // reflected bootstrap draw (2 x estimate - replicate): approximates the uncertainty of the fitted cycle and removes its
+    // upward bias, so the simulated continuations are not centred on an over-fitted wave
+    const fb = fit(t, v, Pb), P2 = Math.min(80, Math.max(8, 2 * P - Pb));
+    const fb2 = fit(t, v, P2);   // coefficients of the replicate at the reflected period
+    draws.push({ P: P2, b: [0, 1, 2].map(r => 2 * f.b[r] - fb2.b[r]) });
+  }
+  const lo = percentile(boot, 2.5), hi = percentile(boot, 97.5);
+  const detected = pval <= aLook && P <= span / 1.5;
+  progress && progress(0.35);
+  const ahead = plan.filter(k => k > span + 1), cond = {};
+  ahead.forEach((N, j) => {
+    const ex = N - span, tt = t.concat(arange(span, N, 1)), th = redNoise(tt, phi, aLook, nnull, R).thr, s2 = scanner(tt); let hit = 0;
+    const v = new Float64Array(tt.length);
+    for (let k = 0; k < sims; k++) {
+      for (let i = 0; i < n; i++) v[i] = y[i];
+      let prev = f.res[n - 1];
+      const D = opt.plugin ? { P, b: f.b } : draws[k % draws.length];
+      const pr = tt => D.b[0] + D.b[1] * Math.sin(2 * Math.PI * tt / D.P) + D.b[2] * Math.cos(2 * Math.PI * tt / D.P);
+      for (let i = 0; i < ex; i++) { prev = phr * prev + R.n() * sd * Math.sqrt(1 - phr * phr); v[n + i] = pr(span + i) + prev; }
+      const [rr, PP] = s2.best(v); if (rr > th && Math.abs(PP - P) <= 0.25 * P && PP <= N / 2) hit++;   // detected with two cycles covered = confirmed
+    }
+    cond[N] = hit / sims; progress && progress(0.35 + 0.5 * (j + 1) / ahead.length);
+  });
+  const pl = linspace(span / 1.5, 3 * span, 120), [r2L, PL] = scanner(t, pl).best(y);
+  const nulL = redNoise(t, phi, 0.05, sims, R, pl).nul, pL = (1 + nulL.filter(v => v >= r2L).length) / (nulL.length + 1);
+  const r2S = scanner(t, PS.filter(q => q <= span / 1.5)).best(y)[0];
+  const longFlag = !detected && pL <= 0.05 && r2L > r2S && PL > span / 1.5 + 2;
+  const next = ahead.length ? ahead[0] : null;
+  let dec;
+  if (longFlag) dec = { kind: 'long', minP: span / 1.5, PL, next };
+  else if (detected && (hi - lo) <= 0.30 * P && span >= 2 * P) dec = { kind: 'established' };
+  else if (next === null) dec = { kind: 'end' };
+  else { const ok = ahead.filter(k => cond[k] >= target); dec = { kind: 'continue', next, reach: ok.length ? ok[0] : null }; }
+  const onPlan = plan.some(k => Math.abs(span - k) <= 1);
+  // reliability: is the period the same in the two halves of a long record, and how much of the variation does it explain
+  let drift = null;
+  if (span >= 104 && detected) {   // only meaningful once a cycle is detected
+    const h = Math.floor(span / 2), i1 = t.map((x, i) => x < h ? i : -1).filter(i => i >= 0), i2 = t.map((x, i) => x >= h ? i : -1).filter(i => i >= 0);
+    const half = idx => { const tt = idx.map(i => t[i] - t[idx[0]]), yy = idx.map(i => y[i]), L = tt[tt.length - 1] + 1;
+      return scanner(tt, PS.filter(q => q <= L / 1.5)).best(yy)[1]; };
+    const P1 = half(i1), P2 = half(i2); drift = { P1, P2, changed: Math.abs(P1 - P2) > 0.25 * (P1 + P2) / 2 };
+  }
+  const weak = detected && r2 < 0.25;
+  progress && progress(1);
+  return { weeks: span, n, r2, period: P, p: pval, aLook, looks, plan, thr, ci: [lo, hi], detected, cond, dec, amp, b: f.b, t,
+           curve, ps: PS, longFlag, PL, r2L, pL, testable: span / 1.5, onPlan, drift, weak };
+}
+
+if (typeof module !== 'undefined') module.exports = { design, checkpoint, estimate, scanner, makeRng, PS, ar1 };
+
+</script>
+<script>
+
+const I18N = {
+  zh: {
+    title: "污水 IgA 采样设计器",
+    lede: "用于规划污水总 IgA 的监测：在开始前确定采样时长与频率；监测进行中，在预先设定的检查点判断 IgA 的周期是否已可确认，以及还需监测多久。输入每周 IgA 浓度即可计算。",
+    s1: "数据输入",
+    drop: "将 CSV 文件拖入此处，或",
+    choose: "选择文件",
+    paste: "粘贴数据",
+    format: "需包含两列：采样日期（如 2001-01-08）与 IgA 浓度（ng/mL）。未采样的周次直接省略，不要以 0 代替。",
+    usePaste: "使用以上数据",
+    summary: "{n} 个样本，{a} 至 {b}，共 {w} 周",
+    s2: "分析类型",
+    mDesign: "制定采样方案",
+    mDesignHint: "适用于仅有数月预实验数据的阶段：比较监测 1–3 年、每 1、2 或 4 周采样一次时检出 IgA 周期的概率。",
+    mCheck: "检查点判断",
+    mCheckHint: "适用于监测进行中、到达预先设定的检查时间：判断周期是否已可确认；若不能，估计还需监测多久。",
+    target: "目标把握（检出概率）",
+    sims: "模拟次数（次数越多结果越稳定，计算越慢）",
+    looks: "预设检查时间（周）",
+    looksHint: "检查时间须在采样开始前确定，以逗号分隔，之后不再更改。检查次数越多，每次的显著性门槛越严格（0.05 ÷ 检查次数），以避免反复检查造成偶然误判。建议在第 52、78、104 周各检查一次。",
+    run: "计算",
+    running: "计算中",
+    done: "计算完成（{s} 秒）",
+    s3: "计算结果",
+    copy: "复制结果文字",
+    copied: "已复制",
+    copyFail: "浏览器不允许直接复制，请手动选择下方文字。",
+    pDesign: "推荐方案",
+    pEst: "周期已确认",
+    pCont: "继续监测",
+    pLong: "可能存在更长的周期",
+    pNone: "未检出周期",
+    headCont: "继续监测至第 {next} 周，届时再次检查",
+    dFew: "样本最少的方案：{every}采样一次，持续 {weeks} 周（{yr}），共 {samples} 个样本，检出概率 {pw}。",
+    every1: "每周",
+    everyN: "每 {n} 周",
+    dWeekly: "若每周采样，最短需持续 {weeks} 周（{yr}）。",
+    dFast: "耗时最短的方案：{every}采样一次，持续 {weeks} 周（{yr}），共 {samples} 个样本，检出概率 {pw}。缩短时间需提高采样频率，减少样本需延长监测，两者无法同时达到最小。",
+    dArchive: "如有往年冻存的进水样本，可一并检测，在数周内获得多年记录；这是缩短等待时间的唯一途径。",
+    dNo: "3 年内没有方案能达到 {t} 的检出概率，需延长监测或提高采样频率。",
+    assumptionsTitle: "短序列采样规划参数",
+    assumptionsHint: "当输入序列不足以估计周期时，请输入拟评估的情景参数。长序列可留空。",
+    periodLabel: "假设周期（8–80 周）",
+    r2Label: "周期解释的方差比例（0–1）",
+    phi_resLabel: "残差一阶自相关（0–0.95）",
+    phi_allLabel: "整序列一阶自相关下限（0–0.95）",
+    needAssumptions: "请填写上方四项短序列参数，再点击计算。",
+    srcAssumed: "此方案使用你输入的短序列情景参数。",
+    srcPilot: "周期长度、波动幅度与噪声均由输入数据估计（周期约 {P} 周）。",
+    params: "计算参数：波动幅度 {amp}（log₁₀），残差标准差 {sd}，残差一阶自相关 {phr}，序列一阶自相关 {phi}。",
+    tLen: "监测时长",
+    tW1: "每周采样",
+    tW2: "每 2 周采样",
+    tW4: "每 4 周采样",
+    tSamples: "{n} 个样本",
+    tCap: "各方案检出周期的概率",
+    tNote: "黑框为达到目标把握且样本最少的方案；格子下方的刻度表示采样间隔。此处概率对应\"监测结束时分析一次\"；若中途设有检查点，每次检查的门槛更严，请参照下方的检查频率比较。",
+    cEst: "周期已确认：IgA 约每 {P} 周起伏一次（95% 区间 {lo}–{hi} 周）。P = {p}，低于本次检查的门槛 {a}，且记录已覆盖两个完整周期。可降低采样频率，或开始分析 IgA 与疾病的关联。",
+    cContNot: "当前最可能的周期为 {P} 周（{lo}–{hi} 周），但 P = {p}，尚未低于本次检查的门槛 {a}。",
+    cContWide: "已检出约 {P} 周的周期（P = {p}），但区间 {lo}–{hi} 周仍偏宽，或记录尚不足两个完整周期。",
+    cCont: "下一次检查在第 {next} 周；若该周期真实存在，届时确认的概率约为 {cp}。",
+    cReach: "若要达到 {t} 的把握，需监测至第 {reach} 周。",
+    cNoReach: "即使监测至计划中的最后一次检查（第 {last} 周），确认的概率也仅为 {cp}。",
+    cMore: "即使再监测一年，确认的概率也仅为 {cp}，需要更长的记录。",
+    cLong: "未检出短于 {m} 周的周期，但数据中存在更缓慢的变化（最佳拟合约 {PL} 周，估计很不确定）。现有记录过短，无法判断其是否为真实周期。建议继续监测至下一次检查；如有冻存进水样本，检测后可将记录向前延伸。",
+    cNone: "监测 3 年仍未检出周期，该地 IgA 可能不存在稳定的周期。",
+    pEnd: "计划内未能确认",
+    cEnd: "这是计划中的最后一次检查，周期尚未确认。如需继续监测，应视为新的方案，重新设定检查时间与门槛。",
+    offPlan: "当前记录为 {w} 周，不在预设的检查时间（{plan}）之内。计划外的检查不受上述门槛控制，结果仅供参考。",
+    mP: "最可能的周期",
+    mCI: "95% 区间",
+    mPv: "P 值",
+    mA: "本次检查的门槛",
+    mLen: "已监测",
+    wk: "周",
+    chSeries: "输入数据",
+    chScore: "各周期长度的拟合优度",
+    chCond: "后续检查点的确认概率",
+    nScore: "横轴为假设的周期长度，纵轴为该周期的正弦波可解释的方差比例（拟合优度）。红色虚线为本次检查的门槛：不含周期的模拟序列中只有 {a} 能超过此线。灰色区域的周期超过记录长度的 2/3，现阶段无法检验。",
+    nCond: "假定该周期真实存在，在现有记录之后模拟至各检查点的数据，按相同门槛重新检验，统计能够确认（检出且记录覆盖两个周期）的比例；模拟时周期长度与幅度在其估计范围内随机变动。虚线为目标把握。若实际不存在周期，此概率会偏高；它回答的是\"若周期存在，还需多久能够确认\"。",
+    nSeries: "圆点为每周测量值。红线为最佳拟合的 {P} 周正弦波，虚线部分为其外推，可作为后续数周的预期值。",
+    nSeriesD: "圆点为每周测量值（纵轴为对数刻度）。",
+    axWeeks: "自首次采样起的周数",
+    axConc: "浓度（对数刻度）",
+    axPeriod: "假设的周期长度（周）",
+    axMore: "后续检查点",
+    yr1: "1 年",
+    yr15: "1.5 年",
+    yr2: "2 年",
+    yr25: "2.5 年",
+    yr3: "3 年",
+    eNoRows: "未读取到有效数据。请确认包含日期与大于 0 的浓度两列。",
+    eFew: "仅读取到 {n} 个样本，至少需要 12 个。",
+    eBad: "{n} 行无法识别，已跳过（如日期格式不符，或浓度为空或为 0）。",
+    eShortCk: "当前记录仅 {w} 周。检查点判断建议在监测满 26 周后进行。",
+    ePlan: "无法识别检查时间。请以逗号分隔的周数填写，如 52, 78, 104。",
+    mTitle: "方法与适用条件",
+    m1: "周期识别：以 8 至 80 周的正弦波逐一拟合 log₁₀ IgA，取解释方差最大者作为最可能的周期。",
+    m2: "与随机波动比较：污水数据存在前后相关的缓慢波动，即使不含周期也可能获得一定的拟合优度。因此生成上千条与实测数据一阶自相关相同、但不含周期的模拟序列（红噪声），在相同采样周次上计算拟合优度；只有实测数据超过几乎所有模拟序列时才判定为检出。模拟序列的自相关取自整条实测序列（其中包含周期成分），因此该门槛偏保守。",
+    m3: "采样方案：按估计的周期、幅度与噪声模拟上千个城市，以各方案分别采样并检验，统计检出比例；估计周期须落在真实周期的 ±25% 以内才计为检出。",
+    m4: "检查点：每次检查的门槛为 0.05 除以预设检查次数（Bonferroni 校正；只要检查时间事先确定，无论设在哪几周均有效）。周期的 95% 区间由参数自助法估计；后续检查点的确认概率由模拟的后续数据计算。判定\"已确认\"还要求区间宽度不超过周期的 30%，且记录覆盖两个完整周期。",
+    m5: "更长的周期：若未检出短于记录 2/3 的周期，另行检验比记录更长的缓慢变化；仅当其拟合优于所有较短周期且 P ≤ 0.05 时给出提示。",
+    m8: "模型假设：IgA 的起伏近似为周期稳定的正弦波，残差为一阶自相关噪声。起伏为尖峰或锯齿形时较难检出，但检出的周期仍然可靠；周期逐渐漂移时，结果反映平均周期。",
+    m6: "模拟结果会随模拟次数略有变化。若判断接近门槛，可增加模拟次数后重新计算。",
+    privacy: "所有计算均在本地浏览器中完成，数据不会上传。",
+    sPer: "真实周期",
+    sMine: "上方方案的假设",
+    sCap: "若本地周期并非 {P} 周：每周采样所需的监测时长",
+    sNote: "上方方案按周期约 {P} 周计算。本表在波动幅度与噪声不变的条件下，改用其他周期重新计算；黑框为每行首次达到目标把握的位置。记录需覆盖约 1.5 个周期才可能检出，周期越长所需时间越长。监测开始后，各检查点将改用本地数据重新估计周期。",
+    ownData: "本结果中的周期、区间与门槛均由输入数据计算。",
+    kCap: "检查频率比较（每周采样）",
+    kHow: "检查频率",
+    kYear: "每年",
+    kHalf: "每半年",
+    kQuarter: "每季度",
+    kMean: "平均结束时间",
+    kFA: "无周期时的误判率",
+    kLook: "检查",
+    kNote: "表中数值为截至该周已确认周期的城市比例。检查越频繁，提前结束的机会越多，但每次检查的门槛更严，至第 104 周的确认比例略低；三种频率的平均结束时间相近，误判率均约为 2%。第一次检查不宜早于第 52 周，过早的检查无法确认周期。确定后，请将检查周次填入\"预设检查时间\"。",
+    lod: "检测限（ng/mL，可选）",
+    lodHint: "低于检测限的结果可写作\"<0.5\"、\"ND\"、\"<LOD\"或 0，统一按检测限的一半计算。检测限优先取此处填写的值，其次取单元格中\"<\"后的数值；均未提供时，取数据中最小的测定值。",
+    miss: "预计缺测比例",
+    qCov: "采样覆盖：{w} 周中有 {k} 周有数据（{c}%）。",
+    qCovLow: "缺测较多，检出所需的时间会相应延长。",
+    qGap: "最长连续缺测 {g} 周，该时段的周期估计可能不稳定。",
+    qGapOk: "最长连续缺测 {g} 周。",
+    qLod_typed: "{n} 个结果低于检测限，已按所填检测限的一半计算。",
+    qLod_cell: "{n} 个结果低于检测限，已按单元格中给出的检测限的一半计算。",
+    qLod_min: "{n} 个结果低于检测限且未提供检测限，已按最小测定值的一半计算；建议在上方填写检测限。",
+    qLodHigh: "低于检测限的比例超过 20%，周期幅度可能被低估。",
+    qAmb: "日期为\"日/月/年\"或\"月/日/年\"格式且无法区分，已按\"日/月/年\"读取；建议改用\"年-月-日\"。",
+    rDrift: "周期稳定性：前半段记录的最佳周期为 {a} 周，后半段为 {b} 周，相差超过 25%，周期可能随时间变化。",
+    rStable: "周期稳定性：前半段记录的最佳周期为 {a} 周，后半段为 {b} 周，两者一致。",
+    rWeak: "该周期仅解释 {r}% 的方差，起伏的规律性较弱，周期以外的变化占主导。",
+    m9: "缺测与不规则采样：所有计算均使用实际有数据的周次，对照用的模拟序列也在相同周次上取值，因此缺测不会造成虚假检出，只会降低检出概率。同一周内的多个样本取平均。制定方案时可设定\"预计缺测比例\"，按随机缺测模拟。",
+    m10: "低于检测限的值：按检测限的一半代入（常用的简单替代法）。比例不高时对周期估计影响很小；超过约 20% 时，低值段被压缩，周期幅度可能被低估。",
+  },
+  en: {
+    title: "Wastewater IgA Sampling Planner",
+    lede: "Plans the monitoring of total IgA in wastewater: before sampling begins, it sets the record length and sampling interval; during monitoring, it decides at pre-specified checkpoints whether the IgA cycle can be confirmed and how much longer to sample. Enter weekly IgA concentrations to begin.",
+    s1: "Data input",
+    drop: "Drop a CSV file here, or",
+    choose: "Choose file",
+    paste: "Paste data",
+    format: "Two columns are required: sampling date (e.g. 2001-01-08) and IgA concentration (ng/mL). Omit weeks that were not sampled; do not enter 0.",
+    usePaste: "Use these data",
+    summary: "{n} samples, {a} to {b}, {w} weeks",
+    s2: "Analysis type",
+    mDesign: "Plan the sampling",
+    mDesignHint: "For the pilot stage: compares the probability of detecting the IgA cycle for records of 1–3 years sampled every 1, 2 or 4 weeks.",
+    mCheck: "Checkpoint decision",
+    mCheckHint: "For an ongoing record at a pre-specified checkpoint: decides whether the cycle is confirmed and, if not, how much longer to sample.",
+    target: "Target power",
+    sims: "Simulations (more is more stable but slower)",
+    looks: "Pre-specified checkpoints (weeks)",
+    looksHint: "Fix the checkpoints before sampling begins, separated by commas, and do not change them. More checkpoints make each test stricter (0.05 / number of checkpoints), which prevents repeated testing from producing chance findings. Checkpoints at weeks 52, 78 and 104 are recommended.",
+    run: "Calculate",
+    running: "Calculating",
+    done: "Done ({s} s)",
+    s3: "Results",
+    copy: "Copy result as text",
+    copied: "Copied",
+    copyFail: "Copying was blocked by the browser; select the text below manually.",
+    pDesign: "Recommended design",
+    pEst: "Cycle confirmed",
+    pCont: "Continue monitoring",
+    pLong: "Possible longer cycle",
+    pNone: "No cycle detected",
+    headCont: "Continue to week {next} and test again",
+    dFew: "Fewest samples: sample {every} for {weeks} weeks ({yr}), {samples} samples, detection probability {pw}.",
+    every1: "weekly",
+    everyN: "every {n} weeks",
+    dWeekly: "With weekly sampling, the shortest adequate record is {weeks} weeks ({yr}).",
+    dFast: "Shortest record: sample {every} for {weeks} weeks ({yr}), {samples} samples, detection probability {pw}. A shorter record requires more frequent sampling, and fewer samples require a longer record; both cannot be minimised together.",
+    dArchive: "If frozen influent from previous years is available, assaying it yields a multi-year record within weeks; this is the only way to shorten the wait.",
+    dNo: "No design within 3 years reaches {t}; a longer record or more frequent sampling is needed.",
+    assumptionsTitle: "Planning assumptions for short records",
+    assumptionsHint: "If the record cannot support a period estimate, enter the scenario you want to evaluate. Leave blank for a sufficiently long record.",
+    periodLabel: "Assumed period (8–80 weeks)",
+    r2Label: "Fraction of variance explained by the cycle (0–1)",
+    phi_resLabel: "Residual lag-1 correlation (0–0.95)",
+    phi_allLabel: "Minimum full-series lag-1 correlation (0–0.95)",
+    needAssumptions: "Enter the four short-record assumptions above, then select Calculate.",
+    srcAssumed: "This design uses the short-record assumptions you entered.",
+    srcPilot: "Period, amplitude and noise are all estimated from the input data (period about {P} weeks).",
+    params: "Parameters: amplitude {amp} (log₁₀), residual SD {sd}, residual lag-1 autocorrelation {phr}, series lag-1 autocorrelation {phi}.",
+    tLen: "Record length",
+    tW1: "weekly",
+    tW2: "every 2 weeks",
+    tW4: "every 4 weeks",
+    tSamples: "{n} samples",
+    tCap: "Probability of detecting the cycle for each design",
+    tNote: "The outlined cell is the design with the fewest samples that reaches the target; ticks show the sampling interval. These probabilities assume a single analysis at the end of the record; with interim checkpoints each test is stricter (see the comparison of checking schedules below).",
+    cEst: "Cycle confirmed: IgA rises and falls about every {P} weeks (95% interval {lo}–{hi} weeks). P = {p}, below this checkpoint’s threshold of {a}, and the record covers two full cycles. Sampling frequency can be reduced, or analyses of the disease association can begin.",
+    cContNot: "The most likely period is {P} weeks ({lo}–{hi} weeks), but P = {p} is not yet below this checkpoint’s threshold of {a}.",
+    cContWide: "A cycle of about {P} weeks is detected (P = {p}), but the interval of {lo}–{hi} weeks is still wide, or the record covers fewer than two full cycles.",
+    cCont: "The next checkpoint is at week {next}; if the cycle is real, the probability of confirming it there is about {cp}.",
+    cReach: "Reaching {t} requires monitoring to week {reach}.",
+    cNoReach: "Even at the last planned checkpoint (week {last}), the probability of confirmation is only {cp}.",
+    cMore: "Even another year of monitoring gives a probability of only {cp}; a longer record is needed.",
+    cLong: "No cycle shorter than {m} weeks is detected, but the data show a slower variation (best fit about {PL} weeks, poorly determined). The record is too short to establish whether this is a real cycle. Continue to the next checkpoint; assaying archived influent, if available, extends the record backwards.",
+    cNone: "No cycle was detected after 3 years; IgA in this catchment may not follow a stable cycle.",
+    pEnd: "Not confirmed within the plan",
+    cEnd: "This is the last planned checkpoint and the cycle is not confirmed. Further monitoring constitutes a new plan with its own checkpoints and threshold.",
+    offPlan: "The record covers {w} weeks, which is not a pre-specified checkpoint ({plan}). An unplanned test is not controlled by the threshold; treat the result as indicative only.",
+    mP: "Most likely period",
+    mCI: "95% interval",
+    mPv: "P value",
+    mA: "Threshold at this checkpoint",
+    mLen: "Record length",
+    wk: "wk",
+    chSeries: "Input data",
+    chScore: "Goodness of fit by period",
+    chCond: "Probability of confirmation at later checkpoints",
+    nScore: "Horizontal axis: assumed period. Vertical axis: proportion of variance explained by a sinusoid of that period. Red dashed line: this checkpoint’s threshold, exceeded by only {a} of simulated series without a cycle. Shaded: periods longer than 2/3 of the record, not yet testable.",
+    nCond: "Assuming the cycle is real, the record is extended with simulated data to each checkpoint and tested again at the same threshold; the share confirmed (detected, with two cycles covered) is shown. Period and amplitude vary within their estimated range across simulations. Dashed line: target power. If no cycle exists this probability is too high; it answers \"if the cycle is real, how long until it is confirmed\".",
+    nSeries: "Dots: weekly measurements. Red line: best-fitting {P}-week sinusoid; the dashed part is its extrapolation and serves as the expected value for the coming weeks.",
+    nSeriesD: "Dots: weekly measurements (log scale).",
+    axWeeks: "weeks since first sample",
+    axConc: "concentration (log scale)",
+    axPeriod: "Assumed period (weeks)",
+    axMore: "Later checkpoints",
+    yr1: "1 yr",
+    yr15: "1.5 yr",
+    yr2: "2 yr",
+    yr25: "2.5 yr",
+    yr3: "3 yr",
+    eNoRows: "No valid data found. Check that there are two columns: a date and a concentration above 0.",
+    eFew: "Only {n} samples were read; at least 12 are required.",
+    eBad: "{n} rows could not be read and were skipped (e.g. unrecognised date, or empty or zero concentration).",
+    eShortCk: "The record covers only {w} weeks. Checkpoint decisions are recommended after at least 26 weeks.",
+    ePlan: "The checkpoints could not be read. Enter week numbers separated by commas, e.g. 52, 78, 104.",
+    mTitle: "Methods and assumptions",
+    m1: "Period identification: sinusoids with periods of 8 to 80 weeks are fitted to log₁₀ IgA; the one explaining the most variance gives the most likely period.",
+    m2: "Comparison with random variation: wastewater data drift with week-to-week correlation, so a sinusoid can fit to some degree even without a cycle. Over a thousand simulated series with the same lag-1 autocorrelation but no cycle (red noise) are therefore scored on the same sampling weeks; a cycle is detected only if the observed fit exceeds nearly all of them. The autocorrelation is taken from the whole observed series, cycle included, so the threshold is conservative.",
+    m3: "Sampling design: about a thousand catchments are simulated with the estimated period, amplitude and noise, sampled under each design and tested; the estimated period must lie within ±25% of the true period to count as a detection.",
+    m4: "Checkpoints: the threshold at each checkpoint is 0.05 divided by the number of pre-specified checkpoints (Bonferroni; valid for any timing fixed in advance). The 95% interval of the period is a parametric bootstrap; the probability of confirmation at later checkpoints is computed from simulated continuations. Confirmation also requires an interval no wider than 30% of the period and a record covering two full cycles.",
+    m5: "Longer cycles: if no cycle shorter than 2/3 of the record is detected, slower variation beyond the record length is tested; it is reported only if it fits better than every shorter period at P ≤ 0.05.",
+    m8: "Model: IgA variation is approximated by a sinusoid with a stable period plus lag-1 autocorrelated noise. Peaked or sawtooth waveforms are detected less often, but detected periods remain correct; with a gradually drifting period, the result reflects the average period.",
+    m6: "Simulation results vary with the number of simulations. If the result is close to a threshold, repeat with more simulations.",
+    privacy: "All calculations run locally in the browser; data are not uploaded.",
+    sPer: "True period",
+    sMine: "assumed above",
+    sCap: "If the local period is not {P} weeks: record length needed with weekly sampling",
+    sNote: "The design above assumes a period of about {P} weeks. This table repeats the calculation for other periods with the same amplitude and noise; the outlined cell marks where each row first reaches the target. The record must cover about 1.5 cycles before a cycle can be detected, so longer periods need longer records. Once monitoring begins, each checkpoint re-estimates the period from local data.",
+    ownData: "The period, interval and threshold in this result are computed from the input data only.",
+    kCap: "Comparison of checking schedules (weekly sampling)",
+    kHow: "Schedule",
+    kYear: "yearly",
+    kHalf: "half-yearly",
+    kQuarter: "quarterly",
+    kMean: "Mean stopping time",
+    kFA: "False alarm (no cycle)",
+    kLook: "check",
+    kNote: "Values are the share of catchments with the cycle confirmed by that week. More frequent checks give earlier opportunities to stop, but each test is stricter, so slightly fewer are confirmed by week 104; mean stopping times are similar and false alarms stay near 2%. The first checkpoint should not precede week 52, as earlier tests cannot confirm the cycle. Enter the chosen weeks under \"Pre-specified checkpoints\".",
+    lod: "Detection limit (ng/mL, optional)",
+    lodHint: "Results below the detection limit may be written as \"<0.5\", \"ND\", \"<LOD\" or 0 and are set to half the detection limit. The limit entered here is used first, then the value after \"<\" in the cell; if neither is given, the smallest measured value is used.",
+    miss: "Expected share of missing samples",
+    qCov: "Coverage: {k} of {w} weeks have data ({c}%).",
+    qCovLow: "Many weeks are missing; detection will take correspondingly longer.",
+    qGap: "The longest gap is {g} weeks. Period estimates across that gap may be less reliable.",
+    qGapOk: "The longest run of missing weeks is {g}.",
+    qLod_typed: "{n} results below the detection limit were set to half the limit entered.",
+    qLod_cell: "{n} results below the detection limit were set to half the limit given in the cell.",
+    qLod_min: "{n} results below the detection limit had no limit given and were set to half the smallest measured value; entering the detection limit above is recommended.",
+    qLodHigh: "More than 20% of results are below the detection limit; the amplitude of the cycle may be underestimated.",
+    qAmb: "Dates in day/month/year or month/day/year form could not be told apart and were read as day/month/year; year-month-day is recommended.",
+    rDrift: "Period stability: the best period is {a} weeks in the first half of the record and {b} weeks in the second, a difference above 25%; the period may be changing.",
+    rStable: "Period stability: the best period is {a} weeks in the first half of the record and {b} weeks in the second, which agree.",
+    rWeak: "The cycle explains only {r}% of the variance; variation other than the cycle dominates.",
+    m9: "Missing and irregular sampling: all calculations use the weeks that have data, and the no-cycle comparison series are read on the same weeks, so missing samples do not create false detections; they only reduce the probability of detection. Several samples in one week are averaged. In design mode, an expected share of missing samples can be set and is simulated as random gaps.",
+    m10: "Values below the detection limit are set to half the limit (simple substitution). With few such values the effect on the period estimate is small; above about 20% the low phase is compressed and the amplitude may be underestimated.",
+  },
+};
+let LANG = 'zh';
+try { const s = localStorage.getItem('iga-lang'); if (s === 'zh' || s === 'en') LANG = s; else if (!/^zh/i.test(navigator.language || '')) LANG = 'en'; } catch (e) { if (!/^zh/i.test(navigator.language || '')) LANG = 'en'; }
+const tr = (k, p) => (I18N[LANG][k] || k).replace(/\{(\w+)\}/g, (_, x) => (p && p[x] !== undefined ? p[x] : ''));
+const $ = id => document.getElementById(id);
+const pct = v => Math.round(v * 100) + '%';
+const fx = (v, d) => Number(v).toFixed(d).replace(/\.0+$/, '');
+const yrOf = w => ({ 52: tr('yr1'), 78: tr('yr15'), 104: tr('yr2'), 130: tr('yr25'), 156: tr('yr3') }[w] || '');
+
+// ---------- data ----------
+let DATA = null, MODE = 'check', LAST = null;
+
+// dates: 2001-01-08, 2001/1/8, 2001.1.8, 20010108, 2001年1月8日, Excel serial numbers, and D/M/Y or M/D/Y
+function parseDate(s, order) {
+  s = String(s).trim().replace(/^"|"$/g, '');
+  let m = s.match(/^(\d{4})\s*[-/.年]\s*(\d{1,2})\s*[-/.月]\s*(\d{1,2})/) || s.match(/^(\d{4})(\d{2})(\d{2})(?:\D|$)/);
+  if (m) return mk(+m[1], +m[2], +m[3]);
+  m = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})/);
+  if (m) return order === 'mdy' ? mk(+m[3], +m[1], +m[2]) : mk(+m[3], +m[2], +m[1]);
+  if (/^\d{5}(\.\d+)?$/.test(s)) { const n = +s; if (n > 20000 && n < 80000) return new Date(Date.UTC(1899, 11, 30) + Math.floor(n) * 864e5); }
+  return null;
+  function mk(y, mo, d) { if (mo < 1 || mo > 12 || d < 1 || d > 31) return null; const x = new Date(Date.UTC(y, mo - 1, d)); return x.getUTCDate() === d ? x : null; }
+}
+// values: numbers; below the detection limit written as "<0.5", "ND", "<LOD", "BDL", "未检出" or 0
+function parseVal(s) {
+  s = String(s ?? '').trim().replace(/^"|"$/g, '').replace(/,/g, '');
+  if (!s) return null;
+  let m = s.match(/^<\s*=?\s*([\d.]+)/); if (m && +m[1] > 0) return { cens: true, lim: +m[1] };
+  if (/^(nd|n\.d\.|bdl|bql|<\s*lod|<\s*loq|lod|loq|<\s*dl|未检出|未検出|検出下限未満|检测限以下)$/i.test(s)) return { cens: true, lim: null };
+  const v = parseFloat(s); if (!isFinite(v) || v < 0) return null;
+  return v === 0 ? { cens: true, lim: null } : { v };
+}
+function parseText(txt) {
+  const lines = txt.split(/\r?\n/).map(l => l.trim()).filter(Boolean); if (!lines.length) return { raw: [], bad: 0 };
+  const sep = lines[0].includes('\t') ? '\t' : (lines[0].includes(';') && !lines[0].includes(',') ? ';' : ',');
+  const head = lines[0].split(sep).map(h => h.trim().toLowerCase().replace(/^"|"$/g, ''));
+  let di = head.findIndex(h => /date|日期|日付|day/.test(h)), vi = head.findIndex(h => /iga|conc|浓度|濃度|ng/.test(h)), start = 1;
+  if (di < 0 || vi < 0) { di = 0; vi = 1; start = parseDate(lines[0].split(sep)[0]) ? 0 : 1; }
+  const cells = lines.slice(start).map(l => l.split(sep).map(x => x.trim()));
+  // D/M/Y versus M/D/Y: decide from the rows where one of the two numbers exceeds 12
+  let dmy = 0, mdy = 0;
+  cells.forEach(c => { const m = String(c[di] || '').match(/^(\d{1,2})[-/.](\d{1,2})[-/.]\d{4}/); if (m) { if (+m[1] > 12) dmy++; if (+m[2] > 12) mdy++; } });
+  const order = mdy > dmy ? 'mdy' : 'dmy', ambiguous = cells.some(c => /^\d{1,2}[-/.]\d{1,2}[-/.]\d{4}/.test(c[di] || '')) && dmy === 0 && mdy === 0;
+  const raw = []; let bad = 0;
+  cells.forEach(c => { const d = parseDate(c[di], order), v = parseVal(c[vi]); if (d && v) raw.push({ d, ...v }); else bad++; });
+  raw.sort((a, b) => a.d - b.d); return { raw, bad, ambiguous };
+}
+let RAW = null;
+function applyLod(raw) {
+  // values below the detection limit are set to half of it: the limit typed on the page, else the one written in the
+  // cell ("<0.5"), else the smallest measured value in the data
+  const typed = parseFloat(($('lod').value || '').replace(',', '.'));
+  const minObs = Math.min(...raw.filter(r => !r.cens).map(r => r.v));
+  let nc = 0, src = null;
+  const rows = raw.map(r => {
+    if (!r.cens) return { d: r.d, v: r.v };
+    nc++; const L = typed > 0 ? typed : (r.lim || minObs); src = typed > 0 ? 'typed' : (r.lim ? 'cell' : 'min');
+    return { d: r.d, v: L / 2, cens: true };
+  });
+  return { rows, nc, src };
+}
+function loadRaw(p) { RAW = p; const a = applyLod(p.raw); setData(a.rows, p.bad, a, p.ambiguous); }
+function setData(rows, bad, lodInfo, ambiguous) {
+  const err = $('dataErr'); err.hidden = true;
+  if (!rows.length) { err.textContent = tr('eNoRows'); err.hidden = false; return; }
+  if (rows.length < 12) { err.textContent = tr('eFew', { n: rows.length }); err.hidden = false; return; }
+  const d0 = rows[0].d, days = r => (r.d - d0) / 864e5;
+  DATA = { rows, t: rows.map(r => days(r) / 7), tr: rows.map(r => Math.round(days(r) / 7)), y: rows.map(r => Math.log10(r.v)),
+           nc: lodInfo ? lodInfo.nc : 0, lodSrc: lodInfo ? lodInfo.src : null, ambiguous: !!ambiguous };
+  if (bad) { err.textContent = tr('eBad', { n: bad }); err.hidden = false; }
+  if (worker && BUSY) { worker.terminate(); worker = null; BUSY = false; }
+  $('run').disabled = false; $('status').textContent = ''; $('prog').style.width = '0%';
+  renderSummary(); LAST = null; renderResults();
+}
+const iso = d => d.toISOString().slice(0, 10);
+function renderSummary() {
+  if (!DATA) return;
+  const r = DATA.rows, w = Math.round(DATA.t[DATA.t.length - 1]) + 1;
+  $('summary').innerHTML = tr('summary', { n: r.length, w, a: iso(r[0].d), b: iso(r[r.length - 1].d) });
+  const wk = [...new Set(DATA.tr)].sort((a, b) => a - b), cov = wk.length / w; let gap = 0;
+  for (let i = 1; i < wk.length; i++) gap = Math.max(gap, wk[i] - wk[i - 1] - 1);
+  const q = [`<li>${tr('qCov', { k: wk.length, w, c: Math.round(100 * cov) })}</li>`];
+  if (cov < 0.7) q.push(`<li class="warn">${tr('qCovLow')}</li>`);
+  if (gap >= 8) q.push(`<li class="warn">${tr('qGap', { g: gap })}</li>`); else if (gap > 0) q.push(`<li>${tr('qGapOk', { g: gap })}</li>`);
+  if (DATA.nc) q.push(`<li class="${DATA.nc / r.length > 0.2 ? 'warn' : ''}">${tr('qLod_' + DATA.lodSrc, { n: DATA.nc })}${DATA.nc / r.length > 0.2 ? ' ' + tr('qLodHigh') : ''}</li>`);
+  if (DATA.ambiguous) q.push(`<li class="warn">${tr('qAmb')}</li>`);
+  $('quality').innerHTML = q.join('');
+  const fitP = LAST && LAST.mode === 'check' ? LAST.res : null;
+  $('seriesChart').innerHTML = seriesSVG(DATA, fitP);
+}
+
+// ---------- charts ----------
+function niceTicks(a, b, n) { const step = Math.pow(10, Math.floor(Math.log10((b - a) / n))); const m = [1, 2, 5, 10].find(k => (b - a) / (k * step) <= n) * step; const o = []; for (let v = Math.ceil(a / m) * m; v <= b + 1e-9; v += m) o.push(+v.toFixed(10)); return o; }
+function frame(W, H, M) { return { W, H, M, iw: W - M.l - M.r, ih: H - M.t - M.b }; }
+function seriesSVG(D, res) {
+  const F = frame(560, 250, { l: 46, r: 12, t: 10, b: 38 });
+  const tmax = Math.max(D.t[D.t.length - 1], res ? res.weeks + 12 : 0) + 1;
+  const ymin = Math.min(...D.y) - 0.08, ymax = Math.max(...D.y) + 0.08;
+  const X = v => F.M.l + v / tmax * F.iw, Y = v => F.M.t + (1 - (v - ymin) / (ymax - ymin)) * F.ih;
+  let g = '';
+  // log-scale ticks at 1, 3, 10, 30 ... (only powers of ten when the data span more than three decades)
+  const dec = ymax - ymin, yt = [];
+  for (let k = Math.floor(ymin); k <= Math.ceil(ymax); k++) for (const m of (dec > 3 ? [1] : [1, 3])) { const v = Math.log10(m) + k; if (v >= ymin && v <= ymax) yt.push(v); }
+  const sup = { '-': '⁻', 0: '⁰', 1: '¹', 2: '²', 3: '³', 4: '⁴', 5: '⁵', 6: '⁶', 7: '⁷', 8: '⁸', 9: '⁹' };
+  const lab = v => { const x = Math.pow(10, v); return x >= 0.1 && x < 10000 ? String(+x.toPrecision(2)) : '10' + String(Math.round(v)).split('').map(c => sup[c]).join(''); };
+  yt.forEach(v => { const yy = Y(v); g += `<line class="grid" x1="${F.M.l}" x2="${F.W - F.M.r}" y1="${yy}" y2="${yy}"/><text x="${F.M.l - 6}" y="${yy + 4}" text-anchor="end">${lab(v)}</text>`; });
+  niceTicks(0, tmax, 6).forEach(v => { g += `<text x="${X(v)}" y="${F.H - F.M.b + 16}" text-anchor="middle">${v}</text>`; });
+  g += `<text x="${F.M.l + F.iw / 2}" y="${F.H - 4}" text-anchor="middle">${tr('axWeeks')}</text>`;
+  g += `<text transform="translate(11 ${F.M.t + F.ih / 2}) rotate(-90)" text-anchor="middle">${tr('axConc')}</text>`;
+  if (res) {
+    const P = res.period, b = res.b, f = tt => b[0] + b[1] * Math.sin(2 * Math.PI * tt / P) + b[2] * Math.cos(2 * Math.PI * tt / P);
+    const t0 = D.tr[0], last = D.tr[D.tr.length - 1]; let p1 = '', p2 = '';
+    for (let tt = 0; tt <= tmax; tt += 0.5) { const yv = Math.min(ymax, Math.max(ymin, f(tt + t0))); const s = `${X(tt)},${Y(yv)} `; if (tt <= last - t0) p1 += s; if (tt >= last - t0) p2 += s; }
+    g += `<polyline points="${p2}" fill="none" stroke="var(--rose)" stroke-width="2" stroke-dasharray="5 4"/><polyline points="${p1}" fill="none" stroke="var(--rose)" stroke-width="2"/>`;
+  }
+  D.t.forEach((tt, i) => { g += D.rows[i].interp ? `<circle cx="${X(tt)}" cy="${Y(D.y[i])}" r="2.6" fill="var(--surface)" stroke="var(--slate)" stroke-width="1.2"/>` : `<circle cx="${X(tt)}" cy="${Y(D.y[i])}" r="2.6" fill="var(--slate)" fill-opacity="0.75"/>`; });
+  g += `<path class="ax" d="M${F.M.l},${F.M.t} V${F.H - F.M.b} H${F.W - F.M.r}"/>`;
+  return `<svg class="chart" viewBox="0 0 ${F.W} ${F.H}" role="img" aria-label="${tr('chSeries')}">${g}</svg><p class="note">${res ? tr('nSeries', { P: fx(res.period, 1) }) : tr('nSeriesD')}</p>`;
+}
+function scoreSVG(res) {
+  const F = frame(520, 240, { l: 44, r: 12, t: 12, b: 38 });
+  const pmax = 80, ymax = Math.max(0.2, Math.ceil(Math.max(res.thr, ...res.curve) * 10 + 0.5) / 10);
+  const X = v => F.M.l + (v - 8) / (pmax - 8) * F.iw, Y = v => F.M.t + (1 - v / ymax) * F.ih;
+  let g = '';
+  if (res.testable < pmax) g += `<rect x="${X(Math.max(8, res.testable))}" y="${F.M.t}" width="${X(pmax) - X(Math.max(8, res.testable))}" height="${F.ih}" fill="var(--soft)"/>`;
+  niceTicks(0, ymax, 4).forEach(v => { g += `<line class="grid" x1="${F.M.l}" x2="${F.W - F.M.r}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${F.M.l - 6}" y="${Y(v) + 4}" text-anchor="end">${Math.round(v * 100)}%</text>`; });
+  [10, 20, 30, 40, 50, 60, 70, 80].forEach(v => { g += `<text x="${X(v)}" y="${F.H - F.M.b + 16}" text-anchor="middle">${v}</text>`; });
+  g += `<text x="${F.M.l + F.iw / 2}" y="${F.H - 4}" text-anchor="middle">${tr('axPeriod')}</text>`;
+  g += `<line class="thr" x1="${F.M.l}" x2="${F.W - F.M.r}" y1="${Y(res.thr)}" y2="${Y(res.thr)}"/>`;
+  g += `<polyline points="${res.ps.map((p, i) => `${X(p)},${Y(Math.max(0, res.curve[i]))}`).join(' ')}" fill="none" stroke="var(--slate)" stroke-width="2"/>`;
+  g += `<circle cx="${X(res.period)}" cy="${Y(res.r2)}" r="4.5" fill="${res.detected ? 'var(--slate)' : 'var(--surface)'}" stroke="var(--slate)" stroke-width="1.6"/>`;
+  const lx = X(res.period) + (res.period > 60 ? -9 : 9), anchor = res.period > 60 ? 'end' : 'start', ly = Math.abs(Y(res.r2) - Y(res.thr)) < 14 ? Math.max(Y(res.r2), Y(res.thr)) + 15 : Y(res.r2) + 4;
+  g += `<text x="${lx}" y="${ly}" text-anchor="${anchor}" style="fill:var(--ink);font-weight:500">${fx(res.period, 1)} ${tr('wk')}</text>`;
+  g += `<path class="ax" d="M${F.M.l},${F.M.t} V${F.H - F.M.b} H${F.W - F.M.r}"/>`;
+  return `<svg class="chart" viewBox="0 0 ${F.W} ${F.H}" role="img" aria-label="${tr('chScore')}">${g}</svg>`;
+}
+function condSVG(res, target) {
+  const F = frame(520, 240, { l: 44, r: 12, t: 12, b: 38 }), ex = Object.keys(res.cond).map(Number).sort((a, b) => a - b);
+  if (!ex.length) return '';
+  const X = i => F.M.l + (i + 0.5) / ex.length * F.iw, Y = v => F.M.t + (1 - v / 1.12) * F.ih, bw = F.iw / ex.length * 0.46;
+  let g = '';
+  [0, 0.2, 0.4, 0.6, 0.8, 1].forEach(v => { g += `<line class="grid" x1="${F.M.l}" x2="${F.W - F.M.r}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${F.M.l - 6}" y="${Y(v) + 4}" text-anchor="end">${Math.round(v * 100)}%</text>`; });
+  ex.forEach((e, i) => {
+    const v = res.cond[e], pick = res.dec.kind === 'continue' && res.dec.next === e;
+    g += `<rect x="${X(i) - bw / 2}" y="${Y(v)}" width="${bw}" height="${Y(0) - Y(v)}" rx="3" fill="${v >= target ? 'var(--slate)' : 'var(--sage)'}" fill-opacity="${pick ? 1 : 0.7}"/>`;
+    g += `<text x="${X(i)}" y="${Math.max(F.M.t + 11, Y(v) - 6)}" text-anchor="middle" style="fill:var(--ink);font-family:var(--f-mono)">${pct(v)}</text>`;
+    g += `<text x="${X(i)}" y="${F.H - F.M.b + 16}" text-anchor="middle">${LANG === 'zh' ? '第 ' + e + ' 周' : 'week ' + e}</text>`;
+  });
+  g += `<line class="ref" x1="${F.M.l}" x2="${F.W - F.M.r}" y1="${Y(target)}" y2="${Y(target)}"/>`;
+  g += `<text x="${F.M.l + F.iw / 2}" y="${F.H - 4}" text-anchor="middle">${tr('axMore')}</text>`;
+  g += `<path class="ax" d="M${F.M.l},${F.M.t} V${F.H - F.M.b} H${F.W - F.M.r}"/>`;
+  return `<svg class="chart" viewBox="0 0 ${F.W} ${F.H}" role="img" aria-label="${tr('chCond')}">${g}</svg>`;
+}
+function cadence(step) {
+  let s = ''; for (let i = 0; i < 26; i++) s += `<rect x="${i * 4}" y="${i % step === 0 ? 0 : 4}" width="2" height="${i % step === 0 ? 6 : 2}" fill="currentColor" opacity="${i % step === 0 ? 0.7 : 0.25}"/>`;
+  return `<svg class="cad" viewBox="0 0 104 6" width="104" height="6" aria-hidden="true">${s}</svg>`;
+}
+
+// ---------- results ----------
+function cellColor(v) {
+  // sequential slate ramp mixed with the surface, readable in both themes
+  const k = Math.max(0, Math.min(1, v)); return `color-mix(in srgb, var(--slate) ${Math.round(6 + k * k * 88)}%, var(--surface))`;
+}
+function renderResults() {
+  const R = $('results');
+  if (!LAST) { R.innerHTML = `<p class="hint">${tr('run')} →</p>`; methods(); return; }
+  if (LAST.mode === 'design') {
+    const { res, opt } = LAST, p = res.p;
+    let v;
+    if (res.fewest) v = `<div class="verdict good"><span class="pill">${tr('pDesign')}</span><p class="big">${tr('dFew', { every: res.fewest.step === 1 ? tr('every1') : tr('everyN', { n: res.fewest.step }), weeks: res.fewest.weeks, yr: yrOf(res.fewest.weeks), samples: res.fewest.samples, pw: pct(res.fewest.power) })}</p>${res.fastest && (res.fastest.weeks !== res.fewest.weeks || res.fastest.step !== res.fewest.step) ? `<p>${tr('dFast', { every: res.fastest.step === 1 ? tr('every1') : tr('everyN', { n: res.fastest.step }), weeks: res.fastest.weeks, yr: yrOf(res.fastest.weeks), samples: res.fastest.samples, pw: pct(res.fastest.power) })}</p>` : ''}<p>${tr('dArchive')}</p></div>`;
+    else v = `<div class="verdict warn"><span class="pill">${tr('pCont')}</span><p class="big">${tr('dNo', { t: pct(opt.target) })}</p></div>`;
+    const src = `<p class="hint">${p.src === 'assumed' ? tr('srcAssumed') : tr('srcPilot', { P: fx(p.period, 1) })} ${tr('params', { amp: fx(p.amp, 3), sd: fx(p.sd, 3), phr: fx(p.phi_res, 2), phi: fx(p.phi_all, 2) })}</p>`;
+    let tb = `<div class="tablewrap"><table class="power"><thead><tr><th>${tr('tLen')}</th><th>${tr('tW1')}</th><th>${tr('tW2')}</th><th>${tr('tW4')}</th></tr></thead><tbody>`;
+    [52, 78, 104, 130, 156].forEach(w => {
+      tb += `<tr><th class="row" scope="row">${w} ${tr('wk')}<br><span class="hint">${yrOf(w)}</span></th>`;
+      [1, 2, 4].forEach(s => {
+        const r = res.rows.find(q => q.weeks === w && q.step === s), pick = res.fewest && res.fewest.weeks === w && res.fewest.step === s;
+        const dark = r.power > 0.72;
+        tb += `<td class="${pick ? 'pick' : ''}" style="background:${cellColor(r.power)};color:${dark ? 'var(--surface)' : 'var(--ink)'}"><b>${pct(r.power)}</b><span>${tr('tSamples', { n: r.samples })}</span>${cadence(s)}</td>`;
+      });
+      tb += '</tr>';
+    });
+    tb += `</tbody></table></div>`;
+    let ts = `<div class="tablewrap"><table class="power"><thead><tr><th>${tr('sPer')}</th>${[52, 78, 104, 130, 156].map(w => `<th>${w} ${tr('wk')}<br><span class="hint">${yrOf(w)}</span></th>`).join('')}</tr></thead><tbody>`;
+    const assumed = Math.round(p.period);
+    res.periods.forEach(T => {
+      const mine = Math.abs(T - p.period) < 3;
+      ts += `<tr><th class="row" scope="row">${T} ${tr('wk')}${mine ? `<br><span class="hint">${tr('sMine')}</span>` : ''}</th>`;
+      [52, 78, 104, 130, 156].forEach(w => {
+        const r = res.sens.find(q => q.period === T && q.weeks === w), dark = r.power > 0.72, okc = r.power >= opt.target;
+        ts += `<td class="${okc && !res.sens.some(q => q.period === T && q.weeks < w && q.power >= opt.target) ? 'pick' : ''}" style="background:${cellColor(r.power)};color:${dark ? 'var(--surface)' : 'var(--ink)'}"><b>${pct(r.power)}</b></td>`;
+      });
+      ts += '</tr>';
+    });
+    ts += `</tbody></table></div>`;
+    const sensFig = `<figure><figcaption>${tr('sCap', { P: assumed })}</figcaption>${ts}<p class="note">${tr('sNote', { P: assumed })}</p></figure>`;
+    const SN = [['yearly', 'kYear'], ['half', 'kHalf'], ['quarterly', 'kQuarter']], LW = [52, 65, 78, 91, 104];
+    let tq = `<div class="tablewrap"><table class="power"><thead><tr><th>${tr('kHow')}</th>${LW.map(w => `<th>${w} ${tr('wk')}</th>`).join('')}<th>${tr('kMean')}</th><th>${tr('kFA')}</th></tr></thead><tbody>`;
+    SN.forEach(([k, lab]) => {
+      const o = res.sched[k];
+      tq += `<tr><th class="row" scope="row">${tr(lab)}<br><span class="hint">${o.looks.join(', ')}</span></th>`;
+      LW.forEach(w => { const v_ = o.cum[w], dark = v_ > 0.72, isLook = o.looks.includes(w);
+        tq += `<td style="background:${cellColor(v_)};color:${dark ? 'var(--surface)' : 'var(--ink)'}"><b>${pct(v_)}</b>${isLook ? `<span>${tr('kLook')}</span>` : ''}</td>`; });
+      tq += `<td><b>${Math.round(o.meanStop)}</b><span>${tr('wk')}</span></td><td><b>${(100 * o.fa).toFixed(1)}%</b></td></tr>`;
+    });
+    tq += `</tbody></table></div>`;
+    const schedFig = `<figure><figcaption>${tr('kCap')}</figcaption>${tq}<p class="note">${tr('kNote')}</p></figure>`;
+    R.innerHTML = `<div style="display:grid;gap:14px">${v}${src}<figure><figcaption>${tr('tCap')}</figcaption>${tb}<p class="note">${tr('tNote')}</p></figure>${sensFig}${schedFig}</div>`;
+  } else {
+    const { res, opt } = LAST, c = res, d = c.dec;
+    const P = fx(c.period, 1), lo = fx(c.ci[0], 1), hi = fx(c.ci[1], 1), pv = c.p < 0.001 ? '<0.001' : fx(c.p, 3), a = fx(c.aLook, 4);
+    let cls, pill, txt;
+    if (d.kind === 'established') { cls = 'good'; pill = tr('pEst'); txt = tr('cEst', { P, lo, hi, p: pv, a }); }
+    else if (d.kind === 'long') { cls = 'warn'; pill = tr('pLong'); txt = tr('cLong', { m: Math.round(d.minP), PL: Math.round(d.PL) }); }
+    else if (d.kind === 'end') { cls = 'bad'; pill = tr('pEnd'); txt = (c.detected ? tr('cContWide', { P, lo, hi, p: pv }) : tr('cContNot', { P, lo, hi, p: pv, a })) + ' ' + tr('cEnd'); }
+    else {
+      cls = ''; pill = tr('pCont');
+      const last = c.plan[c.plan.length - 1];
+      txt = (c.detected ? tr('cContWide', { P, lo, hi, p: pv }) : tr('cContNot', { P, lo, hi, p: pv, a })) + ' ' + tr('cCont', { next: d.next, cp: pct(c.cond[d.next]) }) +
+            (d.reach && d.reach !== d.next ? ' ' + tr('cReach', { t: pct(opt.target), reach: d.reach }) : '') +
+            (!d.reach ? ' ' + tr('cNoReach', { last, cp: pct(c.cond[last]) }) : '');
+    }
+    const head = d.kind === 'continue' ? `<p class="big">${tr('headCont', { next: d.next })}</p>` : '';
+    const warn = c.onPlan ? '' : `<p class="err">${tr('offPlan', { w: c.weeks, plan: c.plan.join(', ') })}</p>`;
+    const m = `<dl class="metrics">
+      <div class="metric"><dt>${tr('mLen')}</dt><dd>${c.weeks} <small>${tr('wk')} · n ${c.n}</small></dd></div>
+      <div class="metric"><dt>${tr('mP')}</dt><dd>${P} <small>${tr('wk')}</small></dd></div>
+      <div class="metric"><dt>${tr('mCI')}</dt><dd>${lo}–${hi}</dd></div>
+      <div class="metric"><dt>${tr('mPv')}</dt><dd>${pv}</dd></div>
+      <div class="metric"><dt>${tr('mA')}</dt><dd>${a} <small>= 0.05/${c.looks}</small></dd></div></dl>`;
+    const rel = [];
+    if (c.drift) rel.push(c.drift.changed ? `<li class="warn">${tr('rDrift', { a: fx(c.drift.P1, 1), b: fx(c.drift.P2, 1) })}</li>` : `<li>${tr('rStable', { a: fx(c.drift.P1, 1), b: fx(c.drift.P2, 1) })}</li>`);
+    if (c.weak) rel.push(`<li class="warn">${tr('rWeak', { r: Math.round(100 * c.r2) })}</li>`);
+    const relBox = rel.length ? `<ul class="quality">${rel.join('')}</ul>` : '';
+    R.innerHTML = `<div style="display:grid;gap:16px">${warn}<div class="verdict ${cls}"><span class="pill">${pill}</span>${head}<p>${txt}</p></div>${m}${relBox}<p class="hint">${tr('ownData')}</p>
+      <div class="charts"><figure><figcaption>${tr('chScore')}</figcaption>${scoreSVG(c)}<p class="note">${tr('nScore', { a: fx(c.aLook * 100, 2) + '%' })}</p></figure>
+      ${Object.keys(c.cond).length ? `<figure><figcaption>${tr('chCond')}</figcaption>${condSVG(c, opt.target)}<p class="note">${tr('nCond')}</p></figure>` : ''}</div></div>`;
+  }
+  methods();
+}
+function methods() { $('methodList').innerHTML = ['m1', 'm2', 'm3', 'm4', 'm5', 'm9', 'm10', 'm8', 'm6'].map(k => `<li>${tr(k)}</li>`).join(''); }
+function resultText() {
+  if (!LAST) return '';
+  const tmp = document.createElement('div'); tmp.innerHTML = $('results').innerHTML;
+  tmp.querySelectorAll('svg').forEach(s => s.remove());
+  return tmp.innerText.replace(/\n{3,}/g, '\n\n').trim();
+}
+
+// ---------- worker ----------
+let worker = null, BUSY = false;
+function getWorker() {
+  if (worker) return worker;
+  const src = $('core').textContent + `
+self.onmessage = e => { const { mode, t, y, opt } = e.data; const prog = v => self.postMessage({ prog: v });
+  try { const res = mode === 'design' ? design(t, y, opt, prog) : checkpoint(t, y, opt, prog); self.postMessage({ done: true, res }); }
+  catch (err) { self.postMessage({ error: String(err && err.message || err) }); } };`;
+  worker = new Worker(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })));
+  return worker;
+}
+function readAssumptions() {
+  const values = {};
+  for (const name of ['period', 'r2', 'phi_res', 'phi_all']) {
+    const field = $('assume_' + name);
+    if (!Number.isFinite(field.valueAsNumber) || !field.checkValidity()) return null;
+    values[name] = field.valueAsNumber;
+  }
+  return values;
+}
+function run() {
+  if (!DATA) return;
+  const plan = $('plan').value.split(/[,，\s]+/).map(Number).filter(v => Number.isFinite(v) && v > 0);
+  const opt = { target: +$('target').value, sims: +$('sims').value, plan, seed: 1, miss: +$('miss').value, assumptions: readAssumptions() };
+  const err = $('dataErr');
+  if (MODE === 'check' && !plan.length) { err.textContent = tr('ePlan'); err.hidden = false; return; }
+  if (MODE === 'check' && DATA.tr[DATA.tr.length - 1] + 1 < 26) { err.textContent = tr('eShortCk', { w: DATA.tr[DATA.tr.length - 1] + 1 }); err.hidden = false; }
+  const btn = $('run'); btn.disabled = true; $('status').textContent = tr('running') + '…'; $('prog').style.width = '2%';
+  if (BUSY && worker) { worker.terminate(); worker = null; }   // a newer request replaces one still running
+  BUSY = true;
+  const t0 = performance.now(), mode = MODE, w = getWorker();
+  w.onmessage = e => {
+    if (e.data.prog !== undefined) { $('prog').style.width = Math.round(e.data.prog * 100) + '%'; return; }
+    btn.disabled = false; BUSY = false;
+    if (e.data.error) {
+      if (e.data.error === 'needAssumptions') { $('assumptions').open = true; $('status').textContent = tr('needAssumptions'); }
+      else { $('status').textContent = e.data.error; }
+      $('prog').style.width = '0%'; LAST = null; renderResults(); return;
+    }
+    $('status').textContent = tr('done', { s: ((performance.now() - t0) / 1000).toFixed(1) });
+    LAST = { mode, res: e.data.res, opt }; renderSummary(); renderResults();
+  };
+  w.postMessage({ mode, t: DATA.t, y: DATA.y, opt });
+}
+
+// ---------- UI ----------
+function applyLang() {
+  document.documentElement.lang = LANG === 'zh' ? 'zh-CN' : 'en';
+  document.title = LANG === 'zh' ? '污水 IgA 采样设计器 · Wastewater IgA Sampling Planner' : 'Wastewater IgA Sampling Planner';
+  document.querySelectorAll('[data-i]').forEach(el => { el.textContent = tr(el.dataset.i); });
+  $('lang-zh').setAttribute('aria-pressed', String(LANG === 'zh')); $('lang-en').setAttribute('aria-pressed', String(LANG === 'en'));
+  renderSummary(); renderResults();
+}
+function syncMode() {
+  $('mode-design').setAttribute('aria-pressed', String(MODE === 'design')); $('mode-check').setAttribute('aria-pressed', String(MODE === 'check'));
+  $('assumptions').hidden = MODE !== 'design';
+  $('looksWrap').hidden = MODE !== 'check'; $('looksHint').hidden = MODE !== 'check'; $('missWrap').hidden = MODE !== 'design';
+}
+$('lang-zh').onclick = () => { LANG = 'zh'; try { localStorage.setItem('iga-lang', 'zh'); } catch (e) {} applyLang(); };
+$('lang-en').onclick = () => { LANG = 'en'; try { localStorage.setItem('iga-lang', 'en'); } catch (e) {} applyLang(); };
+$('mode-design').onclick = () => { MODE = 'design'; syncMode(); if (DATA) run(); };
+$('mode-check').onclick = () => { MODE = 'check'; syncMode(); if (DATA) run(); };
+$('run').onclick = run;
+$('pasteToggle').onclick = () => { $('pasteBox').hidden = !$('pasteBox').hidden; if (!$('pasteBox').hidden) $('pasteText').focus(); };
+$('usePaste').onclick = () => loadRaw(parseText($('pasteText').value));
+$('lod').onchange = () => { if (RAW) { loadRaw(RAW); if (DATA) run(); } };
+$('file').onchange = e => { const f = e.target.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => loadRaw(parseText(String(rd.result))); rd.readAsText(f); };
+const drop = $('drop');
+['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => loadRaw(parseText(String(rd.result))); rd.readAsText(f); });
+$('copy').onclick = () => {
+  const txt = resultText(); if (!txt) return;
+  const fb = () => { const ta = $('copyFallback'); ta.hidden = false; ta.value = txt; ta.select(); $('copyMsg').textContent = tr('copyFail'); };
+  try { navigator.clipboard.writeText(txt).then(() => { $('copyMsg').textContent = tr('copied'); }, fb); } catch (e) { fb(); }
+};
+applyLang(); syncMode();
+</script>
+</body>
+</html>
